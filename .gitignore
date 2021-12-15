@@ -15,3 +15,4 @@ scripts/deploy.js
 example-secret.json
 hardhat.config.js
 hardhat.config.js
+package-lock.json
