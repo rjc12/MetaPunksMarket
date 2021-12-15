@@ -11,3 +11,7 @@ yarn-error.log
 #Other
 .DS_Store
 scripts/deploy.js
+.env
+example-secret.json
+hardhat.config.js
+hardhat.config.js
