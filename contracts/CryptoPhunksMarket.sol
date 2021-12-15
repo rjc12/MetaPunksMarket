@@ -3,8 +3,96 @@ pragma solidity 0.8.10;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Context.sol";
 
-contract CryptoPhunksMarket is ReentrancyGuard {
+/**
+ * @dev Contract module which allows children to implement an emergency stop
+ * mechanism that can be triggered by an authorized account.
+ *
+ * This module is used through inheritance. It will make available the
+ * modifiers `whenNotPaused` and `whenPaused`, which can be applied to
+ * the functions of your contract. Note that they will not be pausable by
+ * simply including this module, only once the modifiers are put in place.
+ */
+abstract contract Pausable is Context {
+    /**
+     * @dev Emitted when the pause is triggered by `account`.
+     */
+    event Paused(address account);
+
+    /**
+     * @dev Emitted when the pause is lifted by `account`.
+     */
+    event Unpaused(address account);
+
+    bool private _paused;
+
+    /**
+     * @dev Initializes the contract in unpaused state.
+     */
+    constructor() {
+        _paused = false;
+    }
+
+    /**
+     * @dev Returns true if the contract is paused, and false otherwise.
+     */
+    function paused() public view virtual returns (bool) {
+        return _paused;
+    }
+
+    /**
+     * @dev Modifier to make a function callable only when the contract is not paused.
+     *
+     * Requirements:
+     *
+     * - The contract must not be paused.
+     */
+    modifier whenNotPaused() {
+        require(!paused(), "Pausable: paused");
+        _;
+    }
+
+    /**
+     * @dev Modifier to make a function callable only when the contract is paused.
+     *
+     * Requirements:
+     *
+     * - The contract must be paused.
+     */
+    modifier whenPaused() {
+        require(paused(), "Pausable: not paused");
+        _;
+    }
+
+    /**
+     * @dev Triggers stopped state.
+     *
+     * Requirements:
+     *
+     * - The contract must not be paused.
+     */
+    function _pause() internal virtual whenNotPaused {
+        _paused = true;
+        emit Paused(_msgSender());
+    }
+
+    /**
+     * @dev Returns to normal state.
+     *
+     * Requirements:
+     *
+     * - The contract must be paused.
+     */
+    function _unpause() internal virtual whenPaused {
+        _paused = false;
+        emit Unpaused(_msgSender());
+    }
+}
+
+
+
+contract CryptoPhunksMarket is ReentrancyGuard, Pausable {
 
     IERC721 phunksContract;     // instance of the CryptoPhunks contract
     address contractOwner;      // owner can change phunksContract
@@ -66,7 +154,7 @@ contract CryptoPhunksMarket is ReentrancyGuard {
     }
 
     /* Allows a CryptoPhunk owner to offer it for sale */
-    function offerPhunkForSale(uint phunkIndex, uint minSalePriceInWei) public nonReentrant() {
+    function offerPhunkForSale(uint phunkIndex, uint minSalePriceInWei) public whenNotPaused nonReentrant()  {
         if (phunkIndex >= 10000) revert();
         if (phunksContract.ownerOf(phunkIndex) != msg.sender) revert();
         phunksOfferedForSale[phunkIndex] = Offer(true, phunkIndex, msg.sender, minSalePriceInWei, address(0x0));
@@ -74,7 +162,7 @@ contract CryptoPhunksMarket is ReentrancyGuard {
     }
 
     /* Allows a CryptoPhunk owner to offer it for sale to a specific address */
-    function offerPhunkForSaleToAddress(uint phunkIndex, uint minSalePriceInWei, address toAddress) public nonReentrant() {
+    function offerPhunkForSaleToAddress(uint phunkIndex, uint minSalePriceInWei, address toAddress) public whenNotPaused nonReentrant() {
         if (phunkIndex >= 10000) revert();
         if (phunksContract.ownerOf(phunkIndex) != msg.sender) revert();
         if (phunksContract.getApproved(phunkIndex) != address(this)) revert();
@@ -83,7 +171,7 @@ contract CryptoPhunksMarket is ReentrancyGuard {
     }
 
     /* Allows users to buy a CryptoPhunk offered for sale */
-    function buyPhunk(uint phunkIndex) payable public nonReentrant() {
+    function buyPhunk(uint phunkIndex) payable public whenNotPaused nonReentrant() {
         if (phunkIndex >= 10000) revert();
         Offer memory offer = phunksOfferedForSale[phunkIndex];
         if (!offer.isForSale) revert();                // phunk not actually for sale
@@ -117,7 +205,7 @@ contract CryptoPhunksMarket is ReentrancyGuard {
     }
 
     /* Allows users to enter bids for any CryptoPhunk */
-    function enterBidForPhunk(uint phunkIndex) payable public nonReentrant() {
+    function enterBidForPhunk(uint phunkIndex) payable public whenNotPaused nonReentrant() {
         if (phunkIndex >= 10000) revert();
         if (phunksContract.ownerOf(phunkIndex) == address(0x0)) revert();
         if (phunksContract.ownerOf(phunkIndex) == msg.sender) revert();
@@ -133,7 +221,7 @@ contract CryptoPhunksMarket is ReentrancyGuard {
     }
 
     /* Allows CryptoPhunk owners to accept bids for their Phunks */
-    function acceptBidForPhunk(uint phunkIndex, uint minPrice) public nonReentrant() {
+    function acceptBidForPhunk(uint phunkIndex, uint minPrice) public whenNotPaused nonReentrant() {
         if (phunkIndex >= 10000) revert();
         if (phunksContract.ownerOf(phunkIndex) != msg.sender) revert();
         address seller = msg.sender;
