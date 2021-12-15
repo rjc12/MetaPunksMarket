@@ -180,7 +180,7 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable {
         Offer memory offer = phunksOfferedForSale[phunkIndex];
         if (!offer.isForSale) revert('phunk is not for sale');                // phunk not actually for sale
         //if (offer.onlySellTo != address(0x0) && offer.onlySellTo != msg.sender) revert();  // phunk not supposed to be sold to this user
-        if (msg.value != offer.minValue) revert('not enought ether');  //Issue #8    // Didn't send enough ETH
+        if (msg.value != offer.minValue) revert('not enough ether');  //Issue #8    // Didn't send enough ETH
         address seller = offer.seller;
         if (seller == msg.sender) revert('seller == msg.sender'); //added to address Issue #6
         if (seller != phunksContract.ownerOf(phunkIndex)) revert('seller no longer owner of phunk'); // Seller no longer owner of phunk
@@ -230,14 +230,14 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable {
     /* Allows CryptoPhunk owners to accept bids for their Phunks */
     function acceptBidForPhunk(uint phunkIndex, uint minPrice) public whenNotPaused nonReentrant() {
         if (phunkIndex >= 10000) revert('token index not valid');
-        if (phunksContract.ownerOf(phunkIndex) != msg.sender) revert('you already own this phunk');
+        if (phunksContract.ownerOf(phunkIndex) != msg.sender) revert('you are not owner of this phunk');
         address seller = msg.sender;
         Bid memory bid = phunkBids[phunkIndex];
         if (bid.value == 0) revert('cannot enter bid of zero');
         if (bid.value < minPrice) revert('your bid is too low');
 
         address bidder = bid.bidder;
-        if (seller == bidder) revert(); //Issue #14
+        if (seller == bidder) revert('you already own this token'); //Issue #14
         //phunksContract.safeTransferFrom(msg.sender, bidder, phunkIndex);
         //phunksOfferedForSale[phunkIndex] = Offer(false, phunkIndex, bidder, 0, address(0x0));
         //uint amount = bid.value;
