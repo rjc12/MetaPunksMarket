@@ -2,8 +2,9 @@
 pragma solidity 0.8.10;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract CryptoPhunksMarket {
+contract CryptoPhunksMarket is ReentrancyGuard {
 
     IERC721 phunksContract;     // instance of the CryptoPhunks contract
     address contractOwner;      // owner can change phunksContract
