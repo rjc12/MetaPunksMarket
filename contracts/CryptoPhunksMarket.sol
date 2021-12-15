@@ -2,7 +2,7 @@
 pragma solidity 0.8.10;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";  //resolves issue #7
 import "@openzeppelin/contracts/utils/Context.sol";
 
 /**
@@ -129,7 +129,8 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable {
 
     /* Initializes contract with an instance of CryptoPhunks contract, and sets deployer as owner */
     constructor(address initialPhunksAddress) {
-        if (initialPhunksAddress == address(0x0)) revert();
+        //if (initialPhunksAddress == address(0x0)) revert();  //per audit Issue #1
+        IERC721(initialPhunksAddress).balanceOf(address(this)); //per audit Issue #1
         phunksContract = IERC721(initialPhunksAddress);
         contractOwner = msg.sender;
     }
@@ -161,7 +162,9 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable {
         emit PhunkOffered(phunkIndex, minSalePriceInWei, address(0x0));
     }
 
+    //to resolve Issue #5 this function was removed
     /* Allows a CryptoPhunk owner to offer it for sale to a specific address */
+    /*
     function offerPhunkForSaleToAddress(uint phunkIndex, uint minSalePriceInWei, address toAddress) public whenNotPaused nonReentrant() {
         if (phunkIndex >= 10000) revert();
         if (phunksContract.ownerOf(phunkIndex) != msg.sender) revert();
@@ -169,19 +172,23 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable {
         phunksOfferedForSale[phunkIndex] = Offer(true, phunkIndex, msg.sender, minSalePriceInWei, toAddress);
         emit PhunkOffered(phunkIndex, minSalePriceInWei, toAddress);
     }
+    */
 
     /* Allows users to buy a CryptoPhunk offered for sale */
     function buyPhunk(uint phunkIndex) payable public whenNotPaused nonReentrant() {
+        if (seller != msg.sender) revert(); //added to address Issue #6
         if (phunkIndex >= 10000) revert();
         Offer memory offer = phunksOfferedForSale[phunkIndex];
         if (!offer.isForSale) revert();                // phunk not actually for sale
         if (offer.onlySellTo != address(0x0) && offer.onlySellTo != msg.sender) revert();  // phunk not supposed to be sold to this user
-        if (msg.value < offer.minValue) revert();      // Didn't send enough ETH
+        if (msg.value != offer.minValue) revert();  //Issue #8    // Didn't send enough ETH
         address seller = offer.seller;
         if (seller != phunksContract.ownerOf(phunkIndex)) revert(); // Seller no longer owner of phunk
 
-        phunksContract.safeTransferFrom(seller, msg.sender, phunkIndex);
-        phunkNoLongerForSale(phunkIndex);
+        //phunksContract.safeTransferFrom(seller, msg.sender, phunkIndex); //issue #12
+        //phunkNoLongerForSale(phunkIndex);
+        phunksOfferedForSale[phunkIndex] = Offer(false, phunkIndex, msg.sender, 0, address(0x0)); //issue #11
+        phunksContract.safeTransferFrom(seller, msg.sender, phunkIndex); //issue #12
         pendingWithdrawals[seller] += msg.value;
         emit PhunkBought(phunkIndex, msg.value, seller, msg.sender);
 
@@ -207,7 +214,7 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable {
     /* Allows users to enter bids for any CryptoPhunk */
     function enterBidForPhunk(uint phunkIndex) payable public whenNotPaused nonReentrant() {
         if (phunkIndex >= 10000) revert();
-        if (phunksContract.ownerOf(phunkIndex) == address(0x0)) revert();
+        //if (phunksContract.ownerOf(phunkIndex) == address(0x0)) revert(); //Issue #9
         if (phunksContract.ownerOf(phunkIndex) == msg.sender) revert();
         if (msg.value == 0) revert();
         Bid memory existing = phunkBids[phunkIndex];
@@ -222,6 +229,7 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable {
 
     /* Allows CryptoPhunk owners to accept bids for their Phunks */
     function acceptBidForPhunk(uint phunkIndex, uint minPrice) public whenNotPaused nonReentrant() {
+        if (seller == bidder) revert(); //Issue #14
         if (phunkIndex >= 10000) revert();
         if (phunksContract.ownerOf(phunkIndex) != msg.sender) revert();
         address seller = msg.sender;
@@ -230,10 +238,14 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable {
         if (bid.value < minPrice) revert();
 
         address bidder = bid.bidder;
-        phunksContract.safeTransferFrom(msg.sender, bidder, phunkIndex);
-        phunksOfferedForSale[phunkIndex] = Offer(false, phunkIndex, bidder, 0, address(0x0));
-        uint amount = bid.value;
-        phunkBids[phunkIndex] = Bid(false, phunkIndex, address(0x0), 0);
+        //phunksContract.safeTransferFrom(msg.sender, bidder, phunkIndex);
+        //phunksOfferedForSale[phunkIndex] = Offer(false, phunkIndex, bidder, 0, address(0x0));
+        //uint amount = bid.value;
+        //phunkBids[phunkIndex] = Bid(false, phunkIndex, address(0x0), 0);
+        phunksOfferedForSale[phunkIndex] = Offer(false, phunkIndex, bidder, 0, address(0x0)); //issue #13
+        uint amount = bid.value;//issue #13
+        phunkBids[phunkIndex] = Bid(false, phunkIndex, address(0x0), 0);//issue #13
+        phunksContract.safeTransferFrom(msg.sender, bidder, phunkIndex);//issue #13
         pendingWithdrawals[seller] += amount;
         emit PhunkBought(phunkIndex, bid.value, seller, bidder);
     }
@@ -241,8 +253,8 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable {
     /* Allows bidders to withdraw their bids */
     function withdrawBidForPhunk(uint phunkIndex) public nonReentrant() {
         if (phunkIndex >= 10000) revert();
-        if (phunksContract.ownerOf(phunkIndex) == address(0x0)) revert();
-        if (phunksContract.ownerOf(phunkIndex) == msg.sender) revert();
+        //if (phunksContract.ownerOf(phunkIndex) == address(0x0)) revert(); //Issue #9
+        //if (phunksContract.ownerOf(phunkIndex) == msg.sender) revert(); per audit Issue#3
         Bid memory bid = phunkBids[phunkIndex];
         if (bid.bidder != msg.sender) revert();
         emit PhunkBidWithdrawn(phunkIndex, bid.value, msg.sender);
