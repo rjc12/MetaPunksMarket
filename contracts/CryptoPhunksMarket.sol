@@ -2,7 +2,7 @@
 pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";  //resolves issue #7
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 
 /**
@@ -164,7 +164,7 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable, Ownable {
         uint phunkIndex;
         address seller;
         uint minValue;          // in ether
-        //address onlySellTo;     // specify to sell only to a specific person
+        
     }
 
     struct Bid {
@@ -191,8 +191,7 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable, Ownable {
 
     /* Initializes contract with an instance of CryptoPhunks contract, and sets deployer as owner */
     constructor(address initialPhunksAddress) {
-        //if (initialPhunksAddress == address(0x0)) revert();  //per audit Issue #1
-        IERC721(initialPhunksAddress).balanceOf(address(this)); //per audit Issue #1
+        IERC721(initialPhunksAddress).balanceOf(address(this));
         phunksContract = IERC721(initialPhunksAddress);
     }
 
@@ -230,33 +229,19 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable, Ownable {
         emit PhunkOffered(phunkIndex, minSalePriceInWei, address(0x0));
     }
 
-    //to resolve Issue #5 this function was removed
-    /* Allows a CryptoPhunk owner to offer it for sale to a specific address */
-    /*
-    function offerPhunkForSaleToAddress(uint phunkIndex, uint minSalePriceInWei, address toAddress) public whenNotPaused nonReentrant() {
-        if (phunkIndex >= 10000) revert();
-        if (phunksContract.ownerOf(phunkIndex) != msg.sender) revert();
-        if (phunksContract.getApproved(phunkIndex) != address(this)) revert();
-        phunksOfferedForSale[phunkIndex] = Offer(true, phunkIndex, msg.sender, minSalePriceInWei, toAddress);
-        emit PhunkOffered(phunkIndex, minSalePriceInWei, toAddress);
-    }
-    */
-
     /* Allows users to buy a CryptoPhunk offered for sale */
     function buyPhunk(uint phunkIndex) payable public whenNotPaused nonReentrant() {
         if (phunkIndex >= 10000) revert('token index not valid');
         Offer memory offer = phunksOfferedForSale[phunkIndex];
         if (!offer.isForSale) revert('phunk is not for sale');                // phunk not actually for sale
-        //if (offer.onlySellTo != address(0x0) && offer.onlySellTo != msg.sender) revert();  // phunk not supposed to be sold to this user
-        if (msg.value != offer.minValue) revert('not enough ether');  //Issue #8    // Didn't send enough ETH
+        if (msg.value != offer.minValue) revert('not enough ether');          // Didn't send enough ETH
         address seller = offer.seller;
-        if (seller == msg.sender) revert('seller == msg.sender'); //added to address Issue #6
+        if (seller == msg.sender) revert('seller == msg.sender');
         if (seller != phunksContract.ownerOf(phunkIndex)) revert('seller no longer owner of phunk'); // Seller no longer owner of phunk
 
-        //phunksContract.safeTransferFrom(seller, msg.sender, phunkIndex); //issue #12
-        //phunkNoLongerForSale(phunkIndex);
-        phunksOfferedForSale[phunkIndex] = Offer(false, phunkIndex, msg.sender, 0); //issue #11
-        phunksContract.safeTransferFrom(seller, msg.sender, phunkIndex); //issue #12
+
+        phunksOfferedForSale[phunkIndex] = Offer(false, phunkIndex, msg.sender, 0);
+        phunksContract.safeTransferFrom(seller, msg.sender, phunkIndex);
         pendingWithdrawals[seller] += msg.value;
         emit PhunkBought(phunkIndex, msg.value, seller, msg.sender);
 
@@ -284,7 +269,6 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable, Ownable {
     /* Allows users to enter bids for any CryptoPhunk */
     function enterBidForPhunk(uint phunkIndex) payable public whenNotPaused nonReentrant() {
         if (phunkIndex >= 10000) revert('token index not valid');
-        //if (phunksContract.ownerOf(phunkIndex) == address(0x0)) revert(); //Issue #9
         if (phunksContract.ownerOf(phunkIndex) == msg.sender) revert('you already own this phunk');
         if (msg.value == 0) revert('cannot enter bid of zero');
         Bid memory existing = phunkBids[phunkIndex];
@@ -307,15 +291,11 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable, Ownable {
         if (bid.value < minPrice) revert('your bid is too low');
 
         address bidder = bid.bidder;
-        if (seller == bidder) revert('you already own this token'); //Issue #14
-        //phunksContract.safeTransferFrom(msg.sender, bidder, phunkIndex);
-        //phunksOfferedForSale[phunkIndex] = Offer(false, phunkIndex, bidder, 0, address(0x0));
-        //uint amount = bid.value;
-        //phunkBids[phunkIndex] = Bid(false, phunkIndex, address(0x0), 0);
-        phunksOfferedForSale[phunkIndex] = Offer(false, phunkIndex, bidder, 0); //issue #13
+        if (seller == bidder) revert('you already own this token');
+        phunksOfferedForSale[phunkIndex] = Offer(false, phunkIndex, bidder, 0);
         uint amount = bid.value;//issue #13
-        phunkBids[phunkIndex] = Bid(false, phunkIndex, address(0x0), 0);//issue #13
-        phunksContract.safeTransferFrom(msg.sender, bidder, phunkIndex);//issue #13
+        phunkBids[phunkIndex] = Bid(false, phunkIndex, address(0x0), 0);
+        phunksContract.safeTransferFrom(msg.sender, bidder, phunkIndex);
         pendingWithdrawals[seller] += amount;
         emit PhunkBought(phunkIndex, bid.value, seller, bidder);
     }
@@ -323,8 +303,6 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable, Ownable {
     /* Allows bidders to withdraw their bids */
     function withdrawBidForPhunk(uint phunkIndex) public nonReentrant() {
         if (phunkIndex >= 10000) revert('token index not valid');
-        //if (phunksContract.ownerOf(phunkIndex) == address(0x0)) revert(); //Issue #9
-        //if (phunksContract.ownerOf(phunkIndex) == msg.sender) revert(); per audit Issue#3
         Bid memory bid = phunkBids[phunkIndex];
         if (bid.bidder != msg.sender) revert('the bidder is not message sender');
         emit PhunkBidWithdrawn(phunkIndex, bid.value, msg.sender);
