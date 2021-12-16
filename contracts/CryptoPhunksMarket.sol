@@ -227,7 +227,6 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable, Ownable {
     function offerPhunkForSale(uint phunkIndex, uint minSalePriceInWei) public whenNotPaused nonReentrant()  {
         if (phunkIndex >= 10000) revert('token index not valid');
         if (phunksContract.ownerOf(phunkIndex) != msg.sender) revert('you are not the owner of this token');
-        if (phunksContract.getApproved(phunkIndex) != address(this)) revert('must set approval for all');
         phunksOfferedForSale[phunkIndex] = Offer(true, phunkIndex, msg.sender, minSalePriceInWei, address(0x0));
         emit PhunkOffered(phunkIndex, minSalePriceInWei, address(0x0));
     }
@@ -236,7 +235,6 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable, Ownable {
     function offerPhunkForSaleToAddress(uint phunkIndex, uint minSalePriceInWei, address toAddress) public whenNotPaused nonReentrant() {
         if (phunkIndex >= 10000) revert();
         if (phunksContract.ownerOf(phunkIndex) != msg.sender) revert('you are not the owner of this token');
-        if (phunksContract.getApproved(phunkIndex) != address(this)) revert('must set approval for all');
         phunksOfferedForSale[phunkIndex] = Offer(true, phunkIndex, msg.sender, minSalePriceInWei, toAddress);
         emit PhunkOffered(phunkIndex, minSalePriceInWei, toAddress);
     }
