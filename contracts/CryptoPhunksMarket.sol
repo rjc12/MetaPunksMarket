@@ -229,6 +229,16 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable, Ownable {
         emit PhunkOffered(phunkIndex, minSalePriceInWei, address(0x0));
     }
 
+    /* Allows a CryptoPhunk owner to offer it for sale to a specific address */
+    function offerPhunkForSaleToAddress(uint phunkIndex, uint minSalePriceInWei, address toAddress) public whenNotPaused nonReentrant() {
+        if (phunkIndex >= 10000) revert();
+        if (phunksContract.ownerOf(phunkIndex) != msg.sender) revert();
+        if (phunksContract.getApproved(phunkIndex) != address(this)) revert();
+        phunksOfferedForSale[phunkIndex] = Offer(true, phunkIndex, msg.sender, minSalePriceInWei, toAddress);
+        emit PhunkOffered(phunkIndex, minSalePriceInWei, toAddress);
+    }
+    
+
     /* Allows users to buy a CryptoPhunk offered for sale */
     function buyPhunk(uint phunkIndex) payable public whenNotPaused nonReentrant() {
         if (phunkIndex >= 10000) revert('token index not valid');

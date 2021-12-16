@@ -17,3 +17,4 @@ hardhat.config.js
 package-lock.json
 bin
 *.abi
+hardhat.mainnet.config.js
