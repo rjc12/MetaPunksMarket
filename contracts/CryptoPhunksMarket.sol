@@ -244,7 +244,8 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable, Ownable {
     function buyPhunk(uint phunkIndex) payable public whenNotPaused nonReentrant() {
         if (phunkIndex >= 10000) revert('token index not valid');
         Offer memory offer = phunksOfferedForSale[phunkIndex];
-        if (!offer.isForSale) revert('phunk is not for sale');                // phunk not actually for sale
+        if (!offer.isForSale) revert('phunk is not for sale'); // phunk not actually for sale
+        if (offer.onlySellTo != address(0x0) && offer.onlySellTo != msg.sender) revert();                
         if (msg.value != offer.minValue) revert('not enough ether');          // Didn't send enough ETH
         address seller = offer.seller;
         if (seller == msg.sender) revert('seller == msg.sender');
