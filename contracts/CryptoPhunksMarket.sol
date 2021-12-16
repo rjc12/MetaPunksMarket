@@ -135,6 +135,10 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable {
         contractOwner = msg.sender;
     }
 
+    function owner() public view virtual returns (address) {
+        return contractOwner;
+    }
+
     function pause() public whenNotPaused {
         if (msg.sender != contractOwner) revert('you are not the owner');
         _pause();
