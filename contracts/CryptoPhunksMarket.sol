@@ -90,8 +90,6 @@ abstract contract Pausable is Context {
     }
 }
 
-pragma solidity ^0.8.4;
-
 /**
  * @dev Contract module which provides access control
  *
