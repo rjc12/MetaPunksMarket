@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-pragma solidity 0.8.10;
+pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";  //resolves issue #7
@@ -90,12 +90,76 @@ abstract contract Pausable is Context {
     }
 }
 
+pragma solidity ^0.8.4;
+
+/**
+ * @dev Contract module which provides access control
+ *
+ * the owner account will be the one that deploys the contract. This
+ * can later be changed with {transferOwnership}.
+ *
+ * mapped to 
+ * `onlyOwner`
+ */
+abstract contract Ownable is Context {
+    address private _owner;
+
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    /**
+     * @dev Initializes the contract setting the deployer as the initial owner.
+     */
+    constructor() {
+        _setOwner(_msgSender());
+    }
+
+    /**
+     * @dev Returns the address of the current owner.
+     */
+    function owner() public view virtual returns (address) {
+        return _owner;
+    }
+
+    /**
+     * @dev Throws if called by any account other than the owner.
+     */
+    modifier onlyOwner() {
+        require(owner() == _msgSender(), "Ownable: caller is not the owner");
+        _;
+    }
+
+    /**
+     * @dev Leaves the contract without owner. It will not be possible to call
+     * `onlyOwner` functions anymore. Can only be called by the current owner.
+     *
+     * NOTE: Renouncing ownership will leave the contract without an owner,
+     * thereby removing any functionality that is only available to the owner.
+     */
+    function renounceOwnership() public virtual onlyOwner {
+        _setOwner(address(0));
+    }
+
+    /**
+     * @dev Transfers ownership of the contract to a new account (`newOwner`).
+     * Can only be called by the current owner.
+     */
+    function transferOwnership(address newOwner) public virtual onlyOwner {
+        require(newOwner != address(0), "Ownable: new owner is the zero address");
+        _setOwner(newOwner);
+    }
+
+    function _setOwner(address newOwner) private {
+        address oldOwner = _owner;
+        _owner = newOwner;
+        emit OwnershipTransferred(oldOwner, newOwner);
+    }
+}
 
 
-contract CryptoPhunksMarket is ReentrancyGuard, Pausable {
+
+contract CryptoPhunksMarket is ReentrancyGuard, Pausable, Ownable {
 
     IERC721 phunksContract;     // instance of the CryptoPhunks contract
-    address contractOwner;      // owner can change phunksContract
 
     struct Offer {
         bool isForSale;
@@ -132,20 +196,13 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable {
         //if (initialPhunksAddress == address(0x0)) revert();  //per audit Issue #1
         IERC721(initialPhunksAddress).balanceOf(address(this)); //per audit Issue #1
         phunksContract = IERC721(initialPhunksAddress);
-        contractOwner = msg.sender;
     }
 
-    function owner() public view virtual returns (address) {
-        return contractOwner;
-    }
-
-    function pause() public whenNotPaused {
-        if (msg.sender != contractOwner) revert('you are not the owner');
+    function pause() public whenNotPaused onlyOwner {
         _pause();
     }
 
-    function unpause() public whenPaused {
-        if (msg.sender != contractOwner) revert('you are not the owner');
+    function unpause() public whenPaused onlyOwner {
         _unpause();
     }
 
@@ -155,8 +212,7 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable {
     }
 
     /* Allows the owner of the contract to set a new CryptoPhunks contract address */
-    function setPhunksContract(address newPhunksAddress) public {
-      if (msg.sender != contractOwner) revert('you are not the owner');
+    function setPhunksContract(address newPhunksAddress) public onlyOwner {
       phunksContract = IERC721(newPhunksAddress);
     }
 
@@ -194,7 +250,7 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable {
         Offer memory offer = phunksOfferedForSale[phunkIndex];
         if (!offer.isForSale) revert('phunk is not for sale');                // phunk not actually for sale
         //if (offer.onlySellTo != address(0x0) && offer.onlySellTo != msg.sender) revert();  // phunk not supposed to be sold to this user
-        if (msg.value != offer.minValue) revert('not enough ether');  //Issue #8    // Didn't send enough ETH
+        if (msg.value != offer.minValue) revert('not enought ether');  //Issue #8    // Didn't send enough ETH
         address seller = offer.seller;
         if (seller == msg.sender) revert('seller == msg.sender'); //added to address Issue #6
         if (seller != phunksContract.ownerOf(phunkIndex)) revert('seller no longer owner of phunk'); // Seller no longer owner of phunk
@@ -215,6 +271,8 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable {
             phunkBids[phunkIndex] = Bid(false, phunkIndex, address(0x0), 0);
         }
     }
+
+
 
     /* Allows users to retrieve ETH from sales */
     function withdraw() public nonReentrant() {
@@ -244,14 +302,14 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable {
     /* Allows CryptoPhunk owners to accept bids for their Phunks */
     function acceptBidForPhunk(uint phunkIndex, uint minPrice) public whenNotPaused nonReentrant() {
         if (phunkIndex >= 10000) revert('token index not valid');
-        if (phunksContract.ownerOf(phunkIndex) != msg.sender) revert('you are not owner of this phunk');
+        if (phunksContract.ownerOf(phunkIndex) != msg.sender) revert('you already own this phunk');
         address seller = msg.sender;
         Bid memory bid = phunkBids[phunkIndex];
         if (bid.value == 0) revert('cannot enter bid of zero');
         if (bid.value < minPrice) revert('your bid is too low');
 
         address bidder = bid.bidder;
-        if (seller == bidder) revert('you already own this token'); //Issue #14
+        if (seller == bidder) revert(); //Issue #14
         //phunksContract.safeTransferFrom(msg.sender, bidder, phunkIndex);
         //phunksOfferedForSale[phunkIndex] = Offer(false, phunkIndex, bidder, 0, address(0x0));
         //uint amount = bid.value;
