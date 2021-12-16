@@ -16,3 +16,4 @@ example-secret.json
 hardhat.config.js
 package-lock.json
 bin
+*.abi
