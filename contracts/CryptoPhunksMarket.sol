@@ -157,13 +157,13 @@ abstract contract Ownable is Context {
 
 
 
-contract CryptoPhunksMarket is ReentrancyGuard, Pausable, Ownable {
+contract MetaPunksMarket is ReentrancyGuard, Pausable, Ownable {
 
-    IERC721 phunksContract;     // instance of the CryptoPhunks contract
+    IERC721 MetaPunksContract;     // instance of the CryptoPhunks contract
 
     struct Offer {
         bool isForSale;
-        uint phunkIndex;
+        uint MetaPunkIndex;
         address seller;
         uint minValue;          // in ether
         address onlySellTo;
@@ -171,30 +171,30 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable, Ownable {
 
     struct Bid {
         bool hasBid;
-        uint phunkIndex;
+        uint MetaPunkIndex;
         address bidder;
         uint value;
     }
 
     // A record of phunks that are offered for sale at a specific minimum value, and perhaps to a specific person
-    mapping (uint => Offer) public phunksOfferedForSale;
+    mapping (uint => Offer) public metapunksOfferedForSale;
 
     // A record of the highest phunk bid
-    mapping (uint => Bid) public phunkBids;
+    mapping (uint => Bid) public metapunkBids;
 
     // A record of pending ETH withdrawls by address
     mapping (address => uint) public pendingWithdrawals;
 
-    event PhunkOffered(uint indexed phunkIndex, uint minValue, address indexed toAddress);
-    event PhunkBidEntered(uint indexed phunkIndex, uint value, address indexed fromAddress);
-    event PhunkBidWithdrawn(uint indexed phunkIndex, uint value, address indexed fromAddress);
-    event PhunkBought(uint indexed phunkIndex, uint value, address indexed fromAddress, address indexed toAddress);
-    event PhunkNoLongerForSale(uint indexed phunkIndex);
+    event MetaPunkOffered(uint indexed metapunkIndex, uint minValue, address indexed toAddress);
+    event MetaPunkBidEntered(uint indexed metapunkIndex, uint value, address indexed fromAddress);
+    event MetaPunkBidWithdrawn(uint indexed metapunkIndex, uint value, address indexed fromAddress);
+    event MetaPunkBought(uint indexed metapunkIndex, uint value, address indexed fromAddress, address indexed toAddress);
+    event MetaPunkNoLongerForSale(uint indexed metapunkIndex);
 
     /* Initializes contract with an instance of CryptoPhunks contract, and sets deployer as owner */
-    constructor(address initialPhunksAddress) {
-        IERC721(initialPhunksAddress).balanceOf(address(this));
-        phunksContract = IERC721(initialPhunksAddress);
+    constructor(address initialMetaPunksAddress) {
+        IERC721(initialMetaPunksAddress).balanceOf(address(this));
+        metapunksContract = IERC721(initialMetaPunksAddress);
     }
 
     function pause() public whenNotPaused onlyOwner {
@@ -206,64 +206,63 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable, Ownable {
     }
 
     /* Returns the CryptoPhunks contract address currently being used */
-    function phunksAddress() public view returns (address) {
-      return address(phunksContract);
+    function metapunkAddress() public view returns (address) {
+      return address(metapunksContract);
     }
 
     /* Allows the owner of the contract to set a new CryptoPhunks contract address */
-    function setPhunksContract(address newPhunksAddress) public onlyOwner {
-      phunksContract = IERC721(newPhunksAddress);
+    function setMetaPunksContract(address newMetaPunksAddress) public onlyOwner {
+      metapunksContract = IERC721(newMetaPunksAddress);
     }
 
     /* Allows the owner of a CryptoPhunks to stop offering it for sale */
-    function phunkNoLongerForSale(uint phunkIndex) public nonReentrant() {
-        if (phunkIndex >= 10000) revert('token index not valid');
-        if (phunksContract.ownerOf(phunkIndex) != msg.sender) revert('you are not the owner of this token');
-        phunksOfferedForSale[phunkIndex] = Offer(false, phunkIndex, msg.sender, 0, address(0x0));
-        emit PhunkNoLongerForSale(phunkIndex);
+    function metapunkNoLongerForSale(uint metapunkIndex) public nonReentrant() {
+        if (metapunkIndex >= 10000) revert('token index not valid');
+        if (metapunksContract.ownerOf(metapunkIndex) != msg.sender) revert('you are not the owner of this token');
+        metapunksOfferedForSale[metapunkIndex] = Offer(false, metapunkIndex, msg.sender, 0, address(0x0));
+        emit MetaPunkNoLongerForSale(metapunkIndex);
     }
 
     /* Allows a CryptoPhunk owner to offer it for sale */
-    function offerPhunkForSale(uint phunkIndex, uint minSalePriceInWei) public whenNotPaused nonReentrant()  {
-        if (phunkIndex >= 10000) revert('token index not valid');
-        if (phunksContract.ownerOf(phunkIndex) != msg.sender) revert('you are not the owner of this token');
-        phunksOfferedForSale[phunkIndex] = Offer(true, phunkIndex, msg.sender, minSalePriceInWei, address(0x0));
-        emit PhunkOffered(phunkIndex, minSalePriceInWei, address(0x0));
+    function offerMetaPunkForSale(uint metapunkIndex, uint minSalePriceInWei) public whenNotPaused nonReentrant()  {
+        if (metapunkIndex >= 10000) revert('token index not valid');
+        if (metapunksContract.ownerOf(metapunkIndex) != msg.sender) revert('you are not the owner of this token');
+        metapunksOfferedForSale[metapunkIndex] = Offer(true, metapunkIndex, msg.sender, minSalePriceInWei, address(0x0));
+        emit MetaPunkOffered(metapunkIndex, minSalePriceInWei, address(0x0));
     }
 
     /* Allows a CryptoPhunk owner to offer it for sale to a specific address */
-    function offerPhunkForSaleToAddress(uint phunkIndex, uint minSalePriceInWei, address toAddress) public whenNotPaused nonReentrant() {
-        if (phunkIndex >= 10000) revert();
-        if (phunksContract.ownerOf(phunkIndex) != msg.sender) revert('you are not the owner of this token');
-        phunksOfferedForSale[phunkIndex] = Offer(true, phunkIndex, msg.sender, minSalePriceInWei, toAddress);
-        emit PhunkOffered(phunkIndex, minSalePriceInWei, toAddress);
+    function offerMetaPunkForSaleToAddress(uint metapunkIndex, uint minSalePriceInWei, address toAddress) public whenNotPaused nonReentrant() {
+        if (metapunkIndex >= 10000) revert();
+        if (metapunksContract.ownerOf(metapunkIndex) != msg.sender) revert('you are not the owner of this token');
+        metapunksOfferedForSale[metapunkIndex] = Offer(true, metapunkIndex, msg.sender, minSalePriceInWei, toAddress);
+        emit MetaPunkOffered(metapunkIndex, minSalePriceInWei, toAddress);
     }
-    
 
     /* Allows users to buy a CryptoPhunk offered for sale */
-    function buyPhunk(uint phunkIndex) payable public whenNotPaused nonReentrant() {
-        if (phunkIndex >= 10000) revert('token index not valid');
-        Offer memory offer = phunksOfferedForSale[phunkIndex];
-        if (!offer.isForSale) revert('phunk is not for sale'); // phunk not actually for sale
-        if (offer.onlySellTo != address(0x0) && offer.onlySellTo != msg.sender) revert();                
-        if (msg.value != offer.minValue) revert('not enough ether');          // Didn't send enough ETH
+    function buyMetaPunk(uint metapunkIndex) payable public whenNotPaused nonReentrant() {
+        if (metapunkIndex >= 10000) revert('token index not valid');
+        Offer memory offer = metapunksOfferedForSale[metapunkIndex];
+        if (!offer.isForSale) revert('metapunk is not for sale'); // phunk not actually for sale
+        if (offer.onlySellTo != address(0x0) && offer.onlySellTo != msg.sender) revert();
+        if (msg.value != offer.minValue) revert('not enough ether'); // Didn't send enough ETH
         address seller = offer.seller;
         if (seller == msg.sender) revert('seller == msg.sender');
-        if (seller != phunksContract.ownerOf(phunkIndex)) revert('seller no longer owner of phunk'); // Seller no longer owner of phunk
+        if (seller != metapunksContract.ownerOf(metapunkIndex)) revert('seller no longer owner of metapunk'); // Seller no longer owner of phunk
 
 
-        phunksOfferedForSale[phunkIndex] = Offer(false, phunkIndex, msg.sender, 0, address(0x0));
-        phunksContract.safeTransferFrom(seller, msg.sender, phunkIndex);
+        metapunksOfferedForSale[metapunkIndex] = Offer(false, metapunkIndex, msg.sender, 0, address(0x0));
+        metapunksContract.safeTransferFrom(seller, msg.sender, metapunkIndex);
         pendingWithdrawals[seller] += msg.value;
-        emit PhunkBought(phunkIndex, msg.value, seller, msg.sender);
+        emit MetaPunkBought(metapunkIndex, msg.value, seller, msg.sender);
 
         // Check for the case where there is a bid from the new owner and refund it.
         // Any other bid can stay in place.
-        Bid memory bid = phunkBids[phunkIndex];
+        Bid memory bid = metapunkBids[metapunkIndex];
         if (bid.bidder == msg.sender) {
             // Kill bid and refund value
             pendingWithdrawals[msg.sender] += bid.value;
-            phunkBids[phunkIndex] = Bid(false, phunkIndex, address(0x0), 0);
+            metapunkBids[metapunkIndex] = Bid(false, metapunkIndex, address(0x0), 0);
         }
     }
 
@@ -279,47 +278,47 @@ contract CryptoPhunksMarket is ReentrancyGuard, Pausable, Ownable {
     }
 
     /* Allows users to enter bids for any CryptoPhunk */
-    function enterBidForPhunk(uint phunkIndex) payable public whenNotPaused nonReentrant() {
-        if (phunkIndex >= 10000) revert('token index not valid');
-        if (phunksContract.ownerOf(phunkIndex) == msg.sender) revert('you already own this phunk');
+    function enterBidForMetaPunk(uint metapunkIndex) payable public whenNotPaused nonReentrant() {
+        if (metapunkIndex >= 10000) revert('token index not valid');
+        if (metapunksContract.ownerOf(metapunkIndex) == msg.sender) revert('you already own this metapunk');
         if (msg.value == 0) revert('cannot enter bid of zero');
-        Bid memory existing = phunkBids[phunkIndex];
+        Bid memory existing = metapunkBids[metapunkIndex];
         if (msg.value <= existing.value) revert('your bid is too low');
         if (existing.value > 0) {
             // Refund the failing bid
             pendingWithdrawals[existing.bidder] += existing.value;
         }
-        phunkBids[phunkIndex] = Bid(true, phunkIndex, msg.sender, msg.value);
-        emit PhunkBidEntered(phunkIndex, msg.value, msg.sender);
+        metapunkBids[metapunkIndex] = Bid(true, metapunkIndex, msg.sender, msg.value);
+        emit MetaPunkBidEntered(metapunkIndex, msg.value, msg.sender);
     }
 
     /* Allows CryptoPhunk owners to accept bids for their Phunks */
-    function acceptBidForPhunk(uint phunkIndex, uint minPrice) public whenNotPaused nonReentrant() {
-        if (phunkIndex >= 10000) revert('token index not valid');
-        if (phunksContract.ownerOf(phunkIndex) != msg.sender) revert('you do not own this token');
+    function acceptBidForMetaPunk(uint metapunkIndex, uint minPrice) public whenNotPaused nonReentrant() {
+        if (metapunkIndex >= 10000) revert('token index not valid');
+        if (metapunksContract.ownerOf(metapunkIndex) != msg.sender) revert('you do not own this token');
         address seller = msg.sender;
-        Bid memory bid = phunkBids[phunkIndex];
+        Bid memory bid = metapunkBids[metapunkIndex];
         if (bid.value == 0) revert('cannot enter bid of zero');
         if (bid.value < minPrice) revert('your bid is too low');
 
         address bidder = bid.bidder;
         if (seller == bidder) revert('you already own this token');
-        phunksOfferedForSale[phunkIndex] = Offer(false, phunkIndex, bidder, 0, address(0x0));
+        metapunksOfferedForSale[metapunkIndex] = Offer(false, metapunkIndex, bidder, 0, address(0x0));
         uint amount = bid.value;
-        phunkBids[phunkIndex] = Bid(false, phunkIndex, address(0x0), 0);
-        phunksContract.safeTransferFrom(msg.sender, bidder, phunkIndex);
+        metapunkBids[metapunkIndex] = Bid(false, metapunkIndex, address(0x0), 0);
+        metapunksContract.safeTransferFrom(msg.sender, bidder, metapunkIndex);
         pendingWithdrawals[seller] += amount;
-        emit PhunkBought(phunkIndex, bid.value, seller, bidder);
+        emit MetaPunkBought(metapunkIndex, bid.value, seller, bidder);
     }
 
     /* Allows bidders to withdraw their bids */
-    function withdrawBidForPhunk(uint phunkIndex) public nonReentrant() {
-        if (phunkIndex >= 10000) revert('token index not valid');
-        Bid memory bid = phunkBids[phunkIndex];
+    function withdrawBidForMetaPunk(uint metapunkIndex) public nonReentrant() {
+        if (metapunkIndex >= 10000) revert('token index not valid');
+        Bid memory bid = metapunkBids[metapunkIndex];
         if (bid.bidder != msg.sender) revert('the bidder is not message sender');
-        emit PhunkBidWithdrawn(phunkIndex, bid.value, msg.sender);
+        emit MetaPunkBidWithdrawn(metapunkIndex, bid.value, msg.sender);
         uint amount = bid.value;
-        phunkBids[phunkIndex] = Bid(false, phunkIndex, address(0x0), 0);
+        metapunkBids[metapunkIndex] = Bid(false, metapunkIndex, address(0x0), 0);
         // Refund the bid money
         payable(msg.sender).transfer(amount);
     }
