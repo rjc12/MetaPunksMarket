@@ -96,7 +96,7 @@ abstract contract Pausable is Context {
  * the owner account will be the one that deploys the contract. This
  * can later be changed with {transferOwnership}.
  *
- * mapped to 
+ * mapped to
  * `onlyOwner`
  */
 abstract contract Ownable is Context {
@@ -141,12 +141,12 @@ abstract contract Ownable is Context {
      * @dev Transfers ownership of the contract to a new account (`newOwner`).
      * Can only be called by the current owner.
      */
-    
+
     function transferOwnership(address newOwner) public virtual onlyOwner {
         require(newOwner != address(0), "Ownable: new owner is the zero address");
         _setOwner(newOwner);
     }
-    
+
 
     function _setOwner(address newOwner) private {
         address oldOwner = _owner;

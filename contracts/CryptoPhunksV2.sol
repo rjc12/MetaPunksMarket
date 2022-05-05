@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
-contract CryptoPhunksV2 is Ownable, ERC721Enumerable, ReentrancyGuard {
+contract MetaPunks is Ownable, ERC721Enumerable, ReentrancyGuard {
   using Counters for Counters.Counter;
   using Strings for uint256;
 
@@ -16,54 +16,54 @@ contract CryptoPhunksV2 is Ownable, ERC721Enumerable, ReentrancyGuard {
   string public constant imageHash =
     "122dab9670c21ad538dafdbb87191c4d7114c389af616c42c54556aa2211b899";
 
-  constructor() ERC721("CryptoPhunksV2", "PHUNK") {}
+  constructor() ERC721("MetaPunks", "MP") {}
 
   bool public isSaleOn = false;
 
   bool public saleHasBeenStarted = false;
 
-  uint256 public constant MAX_MINTABLE_AT_ONCE = 50;
+  uint256 public constant MAX_MINTABLE_AT_ONCE = 20;
 
   uint256[10000] private _availableTokens;
-  uint256 private _numAvailableTokens = 10000;
+  uint256 private _numAvailableTokens = 9000;
   uint256 private _numFreeRollsGiven = 0;
 
-  mapping(address => uint256) public freeRollPhunks;
+  mapping(address => uint256) public freeRollMetaPunks;
 
-  uint256 private _lastTokenIdMintedInInitialSet = 10000;
+  uint256 private _lastTokenIdMintedInInitialSet = 9000;
 
-  function numTotalPhunks() public view virtual returns (uint256) {
-    return 10000;
+  function numTotalMetaPunks() public view virtual returns (uint256) {
+    return 9000;
   }
 
   function freeRollMint() public nonReentrant() {
-    uint256 toMint = freeRollPhunks[msg.sender];
-    freeRollPhunks[msg.sender] = 0;
-    uint256 remaining = numTotalPhunks() - totalSupply();
+    uint256 toMint = freeRollMetaPunks[msg.sender];
+    freeRollMetaPunks[msg.sender] = 0;
+    uint256 remaining = numTotalMetaPunks() - totalSupply();
     if (toMint > remaining) {
       toMint = remaining;
     }
     _mint(toMint);
   }
 
-  function getNumFreeRollPhunks(address owner) public view returns (uint256) {
-    return freeRollPhunks[owner];
+  function getNumFreeRollMetaPunks(address owner) public view returns (uint256) {
+    return freeRollMetaPunks[owner];
   }
 
   function mint(uint256 _numToMint) public payable nonReentrant() {
     require(isSaleOn, "Sale hasn't started.");
     uint256 totalSupply = totalSupply();
     require(
-      totalSupply + _numToMint <= numTotalPhunks(),
-      "There aren't this many phunks left."
+      totalSupply + _numToMint <= numTotalMetaPunks(),
+      "There aren't this many metapunks left."
     );
-    uint256 costForMintingPhunks = getCostForMintingPhunks(_numToMint);
+    uint256 costForMintingMetaPunks = getCostForMintingMetaPunks(_numToMint);
     require(
-      msg.value >= costForMintingPhunks,
+      msg.value >= costForMintingMetaPunks,
       "Too little sent, please send more eth."
     );
-    if (msg.value > costForMintingPhunks) {
-      payable(msg.sender).transfer(msg.value - costForMintingPhunks);
+    if (msg.value > costForMintingMetaPunks) {
+      payable(msg.sender).transfer(msg.value - costForMintingMetaPunks);
     }
 
     _mint(_numToMint);
@@ -137,14 +137,14 @@ contract CryptoPhunksV2 is Ownable, ERC721Enumerable, ReentrancyGuard {
     return result;
   }
 
-  function getCostForMintingPhunks(uint256 _numToMint)
+  function getCostForMintingMetaPunks(uint256 _numToMint)
     public
     view
     returns (uint256)
   {
     require(
-      totalSupply() + _numToMint <= numTotalPhunks(),
-      "There aren't this many phunks left."
+      totalSupply() + _numToMint <= numTotalMetaPunks(),
+      "There aren't this many metapunks left."
     );
     if (_numToMint == 1) {
       return 0.02 ether;
@@ -159,17 +159,17 @@ contract CryptoPhunksV2 is Ownable, ERC721Enumerable, ReentrancyGuard {
     }
   }
 
-  function getPhunksBelongingToOwner(address _owner)
+  function getMetaPunksBelongingToOwner(address _owner)
     external
     view
     returns (uint256[] memory)
   {
-    uint256 numPhunks = balanceOf(_owner);
-    if (numPhunks == 0) {
+    uint256 numMetaPunks = balanceOf(_owner);
+    if (numMetaPunks == 0) {
       return new uint256[](0);
     } else {
-      uint256[] memory result = new uint256[](numPhunks);
-      for (uint256 i = 0; i < numPhunks; i++) {
+      uint256[] memory result = new uint256[](numMetaPunks);
+      for (uint256 i = 0; i < numMetaPunks; i++) {
         result[i] = tokenOfOwnerByIndex(_owner, i);
       }
       return result;
@@ -223,8 +223,8 @@ contract CryptoPhunksV2 is Ownable, ERC721Enumerable, ReentrancyGuard {
   function giveFreeRoll(address receiver) public onlyOwner {
     // max number of free mints we can give to the community for promotions/marketing
     require(_numFreeRollsGiven < 200, "already given max number of free rolls");
-    uint256 freeRolls = freeRollPhunks[receiver];
-    freeRollPhunks[receiver] = freeRolls + 1;
+    uint256 freeRolls = freeRollMetaPunks[receiver];
+    freeRollMetaPunks[receiver] = freeRolls + 1;
     _numFreeRollsGiven = _numFreeRollsGiven + 1;
   }
 
@@ -247,7 +247,7 @@ contract CryptoPhunksV2 is Ownable, ERC721Enumerable, ReentrancyGuard {
     require(numOfFreeRolls[0] <= 3, "cannot give more than 3 free rolls");
 
     for (uint256 i = 0; i < tokenOwners.length; i++) {
-      freeRollPhunks[tokenOwners[i]] = numOfFreeRolls[i];
+      freeRollMetaPunks[tokenOwners[i]] = numOfFreeRolls[i];
     }
   }
 
@@ -259,7 +259,7 @@ contract CryptoPhunksV2 is Ownable, ERC721Enumerable, ReentrancyGuard {
   ) public onlyOwner {
     require(
       !saleHasBeenStarted,
-      "cannot initial phunk mint if sale has started"
+      "cannot initial metapunk mint if sale has started"
     );
     require(
       tokenOwners.length == tokens.length,
@@ -271,7 +271,7 @@ contract CryptoPhunksV2 is Ownable, ERC721Enumerable, ReentrancyGuard {
       uint256 token = tokens[i];
       require(
         lastTokenIdMintedInInitialSetCopy > token,
-        "initial phunk mints must be in decreasing order for our availableToken index to work"
+        "initial metapunk mints must be in decreasing order for our availableToken index to work"
       );
       lastTokenIdMintedInInitialSetCopy = token;
 
